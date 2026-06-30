@@ -1,8 +1,10 @@
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:dio/dio.dart' as dio_pkg;
 import '../../core/constants/api_config.dart';
 
 class ProductSelectionController extends GetxController {
+  final qtyTextController = TextEditingController(text: '1');
   final selectedProduct = Rxn<Map<String, dynamic>>();
   final products = <Map<String, dynamic>>[].obs;
   final isLoading = true.obs;
@@ -22,6 +24,12 @@ class ProductSelectionController extends GetxController {
     customerName = args['customerName']?.toString() ?? 'Walk-in Customer';
     customerMobile = args['customerMobile']?.toString() ?? '';
     fetchProducts();
+
+    quantity.listen((val) {
+      if (qtyTextController.text != val.toString()) {
+        qtyTextController.text = val.toString();
+      }
+    });
   }
 
   Future<void> fetchProducts() async {

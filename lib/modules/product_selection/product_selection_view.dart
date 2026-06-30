@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'product_selection_controller.dart';
 import '../../widgets/glassmorphism_card.dart';
@@ -154,10 +155,24 @@ class ProductSelectionView extends GetView<ProductSelectionController> {
                           Container(
                             width: 60,
                             alignment: Alignment.center,
-                            child: Obx(() => Text(
-                              '${controller.quantity.value}',
+                            child: TextFormField(
+                              controller: controller.qtyTextController,
+                              keyboardType: TextInputType.number,
+                              textAlign: TextAlign.center,
                               style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
-                            )),
+                              decoration: const InputDecoration(
+                                border: InputBorder.none,
+                                isDense: true,
+                                contentPadding: EdgeInsets.zero,
+                              ),
+                              inputFormatters: [
+                                FilteringTextInputFormatter.digitsOnly,
+                              ],
+                              onChanged: (val) {
+                                final parsed = int.tryParse(val) ?? 1;
+                                controller.updateQuantity(parsed);
+                              },
+                            ),
                           ),
                           IconButton(
                             onPressed: () => controller.updateQuantity(controller.quantity.value + 1),

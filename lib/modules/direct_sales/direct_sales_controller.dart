@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:dio/dio.dart' as dio_pkg;
 import 'package:geolocator/geolocator.dart';
@@ -5,6 +6,7 @@ import '../../core/constants/api_config.dart';
 import '../../data/local_db_service.dart';
 
 class DirectSalesController extends GetxController {
+  final qtyTextController = TextEditingController(text: '1');
   final salesman = ''.obs;
   final products = <Map<String, dynamic>>[].obs;
   final isLoading = false.obs;
@@ -23,6 +25,12 @@ class DirectSalesController extends GetxController {
     final args = Get.arguments ?? {};
     salesman.value = args['salesman'] ?? '';
     fetchProducts();
+
+    quantity.listen((val) {
+      if (qtyTextController.text != val.toString()) {
+        qtyTextController.text = val.toString();
+      }
+    });
   }
 
   Future<void> fetchProducts() async {

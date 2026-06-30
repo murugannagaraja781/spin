@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'direct_sales_controller.dart';
 import '../../widgets/glassmorphism_card.dart';
@@ -126,12 +127,26 @@ class DirectSalesView extends GetView<DirectSalesController> {
                                   icon: const Icon(Icons.remove_circle_outline, color: Color(0xFF00E676), size: 28),
                                 ),
                                 Container(
-                                  width: 45,
+                                  width: 60,
                                   alignment: Alignment.center,
-                                  child: Obx(() => Text(
-                                    '${controller.quantity.value}',
+                                  child: TextFormField(
+                                    controller: controller.qtyTextController,
+                                    keyboardType: TextInputType.number,
+                                    textAlign: TextAlign.center,
                                     style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-                                  )),
+                                    decoration: const InputDecoration(
+                                      border: InputBorder.none,
+                                      isDense: true,
+                                      contentPadding: EdgeInsets.zero,
+                                    ),
+                                    inputFormatters: [
+                                      FilteringTextInputFormatter.digitsOnly,
+                                    ],
+                                    onChanged: (val) {
+                                      final parsed = int.tryParse(val) ?? 1;
+                                      controller.quantity.value = parsed > 0 ? parsed : 1;
+                                    },
+                                  ),
                                 ),
                                 IconButton(
                                   onPressed: () => controller.quantity.value++,
