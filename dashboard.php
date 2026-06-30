@@ -136,6 +136,7 @@ $date_from = $_GET['date_from'] ?? '';
 $date_to = $_GET['date_to'] ?? '';
 $salesman_filter = $_GET['salesman'] ?? '';
 $product_filter = $_GET['product'] ?? '';
+$sales_type = $_GET['sales_type'] ?? '';
 
 // Build Query
 $query = "SELECT w.*, c.file_path FROM winners w LEFT JOIN customer_photos c ON w.photo_id = c.id WHERE 1=1";
@@ -151,6 +152,11 @@ if ($salesman_filter) {
 }
 if ($product_filter) {
     $query .= " AND w.product_name = '" . $conn->real_escape_string($product_filter) . "'";
+}
+if ($sales_type === 'spin') {
+    $query .= " AND w.spin_eligible = 1";
+} elseif ($sales_type === 'direct') {
+    $query .= " AND w.spin_eligible = 0";
 }
 
 $query .= " ORDER BY w.created_at DESC";
@@ -1018,6 +1024,14 @@ if ($pie_query) {
                 <?php endwhile; ?>
             </select>
         </div>
+        <div class="form-group">
+            <label>Sales Type:</label>
+            <select name="sales_type">
+                <option value="" <?= $sales_type == '' ? 'selected' : '' ?>>All Sales</option>
+                <option value="spin" <?= $sales_type == 'spin' ? 'selected' : '' ?>>Spin Sales Only</option>
+                <option value="direct" <?= $sales_type == 'direct' ? 'selected' : '' ?>>Direct Sales Only</option>
+            </select>
+        </div>
         <div style="display: flex; gap: 8px; align-items: flex-end; position: relative;">
             <button type="submit" class="btn">Filter</button>
             <a href="dashboard.php" class="btn btn-secondary">Reset</a>
@@ -1301,7 +1315,7 @@ if ($pie_query) {
             
             // Check if there is a query filter active, if so force 'logs' tab!
             const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.has('date_from') || urlParams.has('date_to') || urlParams.has('salesman') || urlParams.has('product')) {
+            if (urlParams.has('date_from') || urlParams.has('date_to') || urlParams.has('salesman') || urlParams.has('product') || urlParams.has('sales_type')) {
                 activeTab = 'logs';
             }
 
