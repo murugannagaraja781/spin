@@ -387,8 +387,27 @@ class AdminDashboardView extends GetView<AdminDashboardController> {
 class HistoryLogsSubView extends GetView<AdminDashboardController> {
   const HistoryLogsSubView({super.key});
 
+  void _confirmBulkDelete(BuildContext context) {
+    Get.defaultDialog(
+      title: 'Confirm Bulk Delete',
+      middleText: 'Are you sure you want to delete ${controller.selectedWinnerIds.length} selected records?',
+      textConfirm: 'Delete All',
+      textCancel: 'Cancel',
+      confirmTextColor: Colors.white,
+      buttonColor: Colors.redAccent,
+      onConfirm: () {
+        Get.back();
+        controller.deleteWinnersBulk(List<int>.from(controller.selectedWinnerIds));
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      controller.selectedWinnerIds.clear();
+    });
+
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
@@ -396,6 +415,35 @@ class HistoryLogsSubView extends GetView<AdminDashboardController> {
         backgroundColor: const Color(0xFF070C16).withOpacity(0.9),
         elevation: 0,
         actions: [
+          Obx(() {
+            if (controller.selectedWinnerIds.isEmpty) {
+              return const SizedBox.shrink();
+            }
+            return IconButton(
+              icon: const Icon(Icons.delete, color: Colors.redAccent),
+              tooltip: 'Delete Selected',
+              onPressed: () => _confirmBulkDelete(context),
+            );
+          }),
+          IconButton(
+            icon: const Icon(Icons.select_all, color: Color(0xFF00E5FF)),
+            tooltip: 'Select All',
+            onPressed: () {
+              final allIds = controller.filteredSpinWinners.map((w) => int.tryParse(w['id'].toString()) ?? 0).where((id) => id > 0).toList();
+              final allSelected = allIds.isNotEmpty && allIds.every((id) => controller.selectedWinnerIds.contains(id));
+              if (allSelected) {
+                for (var id in allIds) {
+                  controller.selectedWinnerIds.remove(id);
+                }
+              } else {
+                for (var id in allIds) {
+                  if (!controller.selectedWinnerIds.contains(id)) {
+                    controller.selectedWinnerIds.add(id);
+                  }
+                }
+              }
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.download, color: Color(0xFF00E676)),
             tooltip: 'Export CSV',
@@ -624,117 +672,139 @@ class HistoryLogsSubView extends GetView<AdminDashboardController> {
         ? '${ApiConfig.baseUrl}/${w['photo_path'].toString().replaceAll('api/', '')}'
         : '';
 
+    final int recordId = int.tryParse(w['id'].toString()) ?? 0;
     return Padding(
       padding: const EdgeInsets.only(bottom: 12.0),
-      child: GlassmorphismCard(
-        padding: const EdgeInsets.all(12),
-        child: Row(
-          children: [
-            if (imageUrl.isNotEmpty)
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Image.network(
-                  imageUrl,
-                  width: 65,
-                  height: 65,
-                  fit: BoxFit.cover,
-                  errorBuilder: (c, e, s) => Container(width: 65, height: 65, color: Colors.white10, child: const Icon(Icons.broken_image, size: 20, color: Colors.white24)),
-                ),
-              )
-            else
-              Container(width: 65, height: 65, decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(8)), child: const Icon(Icons.person, color: Colors.white24)),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
+        children: [
+          Obx(() {
+            final isChecked = controller.selectedWinnerIds.contains(recordId);
+            return Checkbox(
+              value: isChecked,
+              activeColor: const Color(0xFF00E5FF),
+              checkColor: Colors.black,
+              onChanged: (val) {
+                if (val == true) {
+                  controller.selectedWinnerIds.add(recordId);
+                } else {
+                  controller.selectedWinnerIds.remove(recordId);
+                }
+              },
+            );
+          }),
+          Expanded(
+            child: GlassmorphismCard(
+              padding: const EdgeInsets.all(12),
+              child: Row(
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Text('${w['customer_name']} (${w['mobile_number']})', style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
+                  if (imageUrl.isNotEmpty)
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.network(
+                        imageUrl,
+                        width: 65,
+                        height: 65,
+                        fit: BoxFit.cover,
+                        errorBuilder: (c, e, s) => Container(width: 65, height: 65, color: Colors.white10, child: const Icon(Icons.broken_image, size: 20, color: Colors.white24)),
                       ),
-                      Text('₹${w['net_amount']}', style: const TextStyle(color: Color(0xFF00E5FF), fontSize: 14, fontWeight: FontWeight.bold)),
-                    ],
-                  ),
-                  const SizedBox(height: 2),
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: (w['spin_eligible'] == 1) ? const Color(0xFF00E5FF).withOpacity(0.15) : const Color(0xFF00E676).withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(4),
-                          border: Border.all(
-                            color: (w['spin_eligible'] == 1) ? const Color(0xFF00E5FF) : const Color(0xFF00E676),
-                            width: 0.5,
-                          ),
-                        ),
-                        child: Text(
-                          (w['spin_eligible'] == 1) ? 'SPIN SALE' : 'DIRECT',
-                          style: TextStyle(
-                            color: (w['spin_eligible'] == 1) ? const Color(0xFF00E5FF) : const Color(0xFF00E676),
-                            fontSize: 8,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                          (w['spin_eligible'] == 1) ? 'Prize: ${w['prize_won']}' : 'Direct Checkout',
-                          style: TextStyle(
-                            color: (w['spin_eligible'] == 1) ? const Color(0xFF00E676) : Colors.greenAccent,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
-                  Text('${w['salesman_name']} • ${w['product_name']} (Qty: ${w['quantity']})', style: const TextStyle(color: Colors.white54, fontSize: 11)),
-                  if (timeStr.isNotEmpty) Text(timeStr, style: const TextStyle(color: Colors.white30, fontSize: 10)),
-                  if (w['latitude'] != null && w['longitude'] != null && w['latitude'].toString().isNotEmpty && w['longitude'].toString().isNotEmpty && w['latitude'].toString() != 'null' && w['longitude'].toString() != 'null')
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4.0),
-                      child: GestureDetector(
-                        onTap: () async {
-                          final lat = w['latitude'];
-                          final lng = w['longitude'];
-                          final googleMapsUrl = Uri.parse('https://www.google.com/maps/search/?api=1&query=$lat,$lng');
-                          try {
-                            if (await canLaunchUrl(googleMapsUrl)) {
-                              await launchUrl(googleMapsUrl, mode: LaunchMode.externalApplication);
-                            }
-                          } catch (_) {}
-                        },
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
+                    )
+                  else
+                    Container(width: 65, height: 65, decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(8)), child: const Icon(Icons.person, color: Colors.white24)),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Icon(Icons.location_on, color: Color(0xFF00E5FF), size: 12),
-                            const SizedBox(width: 4),
-                            Text(
-                              'Location: ${w['latitude']}, ${w['longitude']}',
-                              style: const TextStyle(color: Color(0xFF00E5FF), fontSize: 10, decoration: TextDecoration.underline),
+                            Expanded(
+                              child: Text('${w['customer_name']} (${w['mobile_number']})', style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
+                            ),
+                            Text('₹${w['net_amount']}', style: const TextStyle(color: Color(0xFF00E5FF), fontSize: 14, fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                        const SizedBox(height: 2),
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: (w['spin_eligible'] == 1) ? const Color(0xFF00E5FF).withOpacity(0.15) : const Color(0xFF00E676).withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(4),
+                                border: Border.all(
+                                  color: (w['spin_eligible'] == 1) ? const Color(0xFF00E5FF) : const Color(0xFF00E676),
+                                  width: 0.5,
+                                ),
+                              ),
+                              child: Text(
+                                (w['spin_eligible'] == 1) ? 'SPIN SALE' : 'DIRECT',
+                                style: TextStyle(
+                                  color: (w['spin_eligible'] == 1) ? const Color(0xFF00E5FF) : const Color(0xFF00E676),
+                                  fontSize: 8,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                (w['spin_eligible'] == 1) ? 'Prize: ${w['prize_won']}' : 'Direct Checkout',
+                                style: TextStyle(
+                                  color: (w['spin_eligible'] == 1) ? const Color(0xFF00E676) : Colors.greenAccent,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
                           ],
                         ),
-                      ),
+                        Text('${w['salesman_name']} • ${w['product_name']} (Qty: ${w['quantity']})', style: const TextStyle(color: Colors.white54, fontSize: 11)),
+                        if (timeStr.isNotEmpty) Text(timeStr, style: const TextStyle(color: Colors.white30, fontSize: 10)),
+                        if (w['latitude'] != null && w['longitude'] != null && w['latitude'].toString().isNotEmpty && w['longitude'].toString().isNotEmpty && w['latitude'].toString() != 'null' && w['longitude'].toString() != 'null')
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4.0),
+                            child: GestureDetector(
+                              onTap: () async {
+                                final lat = w['latitude'];
+                                final lng = w['longitude'];
+                                final googleMapsUrl = Uri.parse('https://www.google.com/maps/search/?api=1&query=$lat,$lng');
+                                try {
+                                  if (await canLaunchUrl(googleMapsUrl)) {
+                                    await launchUrl(googleMapsUrl, mode: LaunchMode.externalApplication);
+                                  }
+                                } catch (_) {}
+                              },
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.location_on, color: Color(0xFF00E5FF), size: 12),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'Location: ${w['latitude']}, ${w['longitude']}',
+                                    style: const TextStyle(color: Color(0xFF00E5FF), fontSize: 10, decoration: TextDecoration.underline),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                    onPressed: () => _confirmDelete(() {
+                      final id = int.tryParse(w['id'].toString()) ?? 0;
+                      controller.deleteWinner(id);
+                    }),
+                  ),
                 ],
               ),
             ),
-            IconButton(
-              icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
-              onPressed: () => _confirmDelete(() {
-                final id = int.tryParse(w['id'].toString()) ?? 0;
-                controller.deleteWinner(id);
-              }),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -762,8 +832,27 @@ class HistoryLogsSubView extends GetView<AdminDashboardController> {
 class DirectSalesReportSubView extends GetView<AdminDashboardController> {
   const DirectSalesReportSubView({super.key});
 
+  void _confirmBulkDelete(BuildContext context) {
+    Get.defaultDialog(
+      title: 'Confirm Bulk Delete',
+      middleText: 'Are you sure you want to delete ${controller.selectedWinnerIds.length} selected records?',
+      textConfirm: 'Delete All',
+      textCancel: 'Cancel',
+      confirmTextColor: Colors.white,
+      buttonColor: Colors.redAccent,
+      onConfirm: () {
+        Get.back();
+        controller.deleteWinnersBulk(List<int>.from(controller.selectedWinnerIds));
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      controller.selectedWinnerIds.clear();
+    });
+
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
@@ -771,6 +860,35 @@ class DirectSalesReportSubView extends GetView<AdminDashboardController> {
         backgroundColor: const Color(0xFF070C16).withOpacity(0.9),
         elevation: 0,
         actions: [
+          Obx(() {
+            if (controller.selectedWinnerIds.isEmpty) {
+              return const SizedBox.shrink();
+            }
+            return IconButton(
+              icon: const Icon(Icons.delete, color: Colors.redAccent),
+              tooltip: 'Delete Selected',
+              onPressed: () => _confirmBulkDelete(context),
+            );
+          }),
+          IconButton(
+            icon: const Icon(Icons.select_all, color: Color(0xFF00E5FF)),
+            tooltip: 'Select All',
+            onPressed: () {
+              final allIds = controller.filteredDirectWinners.map((w) => int.tryParse(w['id'].toString()) ?? 0).where((id) => id > 0).toList();
+              final allSelected = allIds.isNotEmpty && allIds.every((id) => controller.selectedWinnerIds.contains(id));
+              if (allSelected) {
+                for (var id in allIds) {
+                  controller.selectedWinnerIds.remove(id);
+                }
+              } else {
+                for (var id in allIds) {
+                  if (!controller.selectedWinnerIds.contains(id)) {
+                    controller.selectedWinnerIds.add(id);
+                  }
+                }
+              }
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.download, color: Color(0xFF00E676)),
             tooltip: 'Export CSV',
@@ -922,117 +1040,139 @@ class DirectSalesReportSubView extends GetView<AdminDashboardController> {
         ? '${ApiConfig.baseUrl}/${w['photo_path'].toString().replaceAll('api/', '')}'
         : '';
 
+    final int recordId = int.tryParse(w['id'].toString()) ?? 0;
     return Padding(
       padding: const EdgeInsets.only(bottom: 12.0),
-      child: GlassmorphismCard(
-        padding: const EdgeInsets.all(12),
-        child: Row(
-          children: [
-            if (imageUrl.isNotEmpty)
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Image.network(
-                  imageUrl,
-                  width: 65,
-                  height: 65,
-                  fit: BoxFit.cover,
-                  errorBuilder: (c, e, s) => Container(width: 65, height: 65, color: Colors.white10, child: const Icon(Icons.broken_image, size: 20, color: Colors.white24)),
-                ),
-              )
-            else
-              Container(width: 65, height: 65, decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(8)), child: const Icon(Icons.shopping_cart, color: Colors.white24)),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
+        children: [
+          Obx(() {
+            final isChecked = controller.selectedWinnerIds.contains(recordId);
+            return Checkbox(
+              value: isChecked,
+              activeColor: const Color(0xFF00E5FF),
+              checkColor: Colors.black,
+              onChanged: (val) {
+                if (val == true) {
+                  controller.selectedWinnerIds.add(recordId);
+                } else {
+                  controller.selectedWinnerIds.remove(recordId);
+                }
+              },
+            );
+          }),
+          Expanded(
+            child: GlassmorphismCard(
+              padding: const EdgeInsets.all(12),
+              child: Row(
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Text('${w['customer_name']} (${w['mobile_number']})', style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
+                  if (imageUrl.isNotEmpty)
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.network(
+                        imageUrl,
+                        width: 65,
+                        height: 65,
+                        fit: BoxFit.cover,
+                        errorBuilder: (c, e, s) => Container(width: 65, height: 65, color: Colors.white10, child: const Icon(Icons.broken_image, size: 20, color: Colors.white24)),
                       ),
-                      Text('₹${w['net_amount']}', style: const TextStyle(color: Color(0xFF00E676), fontSize: 14, fontWeight: FontWeight.bold)),
-                    ],
-                  ),
-                  const SizedBox(height: 2),
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF00E676).withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(4),
-                          border: Border.all(
-                            color: const Color(0xFF00E676),
-                            width: 0.5,
-                          ),
-                        ),
-                        child: const Text(
-                          'DIRECT',
-                          style: TextStyle(
-                            color: Color(0xFF00E676),
-                            fontSize: 8,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      const Expanded(
-                        child: Text(
-                          'Direct Checkout',
-                          style: TextStyle(
-                            color: Colors.greenAccent,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
-                  Text('${w['salesman_name']} • ${w['product_name']} (Qty: ${w['quantity']})', style: const TextStyle(color: Colors.white54, fontSize: 11)),
-                  if (timeStr.isNotEmpty) Text(timeStr, style: const TextStyle(color: Colors.white30, fontSize: 10)),
-                  if (w['latitude'] != null && w['longitude'] != null && w['latitude'].toString().isNotEmpty && w['longitude'].toString().isNotEmpty && w['latitude'].toString() != 'null' && w['longitude'].toString() != 'null')
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4.0),
-                      child: GestureDetector(
-                        onTap: () async {
-                          final lat = w['latitude'];
-                          final lng = w['longitude'];
-                          final googleMapsUrl = Uri.parse('https://www.google.com/maps/search/?api=1&query=$lat,$lng');
-                          try {
-                            if (await canLaunchUrl(googleMapsUrl)) {
-                              await launchUrl(googleMapsUrl, mode: LaunchMode.externalApplication);
-                            }
-                          } catch (_) {}
-                        },
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
+                    )
+                  else
+                    Container(width: 65, height: 65, decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(8)), child: const Icon(Icons.shopping_cart, color: Colors.white24)),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Icon(Icons.location_on, color: Color(0xFF00E5FF), size: 12),
-                            const SizedBox(width: 4),
-                            Text(
-                              'Location: ${w['latitude']}, ${w['longitude']}',
-                              style: const TextStyle(color: Color(0xFF00E5FF), fontSize: 10, decoration: TextDecoration.underline),
+                            Expanded(
+                              child: Text('${w['customer_name']} (${w['mobile_number']})', style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
+                            ),
+                            Text('₹${w['net_amount']}', style: const TextStyle(color: Color(0xFF00E676), fontSize: 14, fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                        const SizedBox(height: 2),
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF00E676).withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(4),
+                                border: Border.all(
+                                  color: const Color(0xFF00E676),
+                                  width: 0.5,
+                                ),
+                              ),
+                              child: const Text(
+                                'DIRECT',
+                                style: TextStyle(
+                                  color: Color(0xFF00E676),
+                                  fontSize: 8,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            const Expanded(
+                              child: Text(
+                                'Direct Checkout',
+                                style: TextStyle(
+                                  color: Colors.greenAccent,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
                           ],
                         ),
-                      ),
+                        Text('${w['salesman_name']} • ${w['product_name']} (Qty: ${w['quantity']})', style: const TextStyle(color: Colors.white54, fontSize: 11)),
+                        if (timeStr.isNotEmpty) Text(timeStr, style: const TextStyle(color: Colors.white30, fontSize: 10)),
+                        if (w['latitude'] != null && w['longitude'] != null && w['latitude'].toString().isNotEmpty && w['longitude'].toString().isNotEmpty && w['latitude'].toString() != 'null' && w['longitude'].toString() != 'null')
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4.0),
+                            child: GestureDetector(
+                              onTap: () async {
+                                final lat = w['latitude'];
+                                final lng = w['longitude'];
+                                final googleMapsUrl = Uri.parse('https://www.google.com/maps/search/?api=1&query=$lat,$lng');
+                                try {
+                                  if (await canLaunchUrl(googleMapsUrl)) {
+                                    await launchUrl(googleMapsUrl, mode: LaunchMode.externalApplication);
+                                  }
+                                } catch (_) {}
+                              },
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.location_on, color: Color(0xFF00E5FF), size: 12),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'Location: ${w['latitude']}, ${w['longitude']}',
+                                    style: const TextStyle(color: Color(0xFF00E5FF), fontSize: 10, decoration: TextDecoration.underline),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                    onPressed: () => _confirmDelete(() {
+                      final id = int.tryParse(w['id'].toString()) ?? 0;
+                      controller.deleteWinner(id);
+                    }),
+                  ),
                 ],
               ),
             ),
-            IconButton(
-              icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
-              onPressed: () => _confirmDelete(() {
-                final id = int.tryParse(w['id'].toString()) ?? 0;
-                controller.deleteWinner(id);
-              }),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -1060,8 +1200,27 @@ class DirectSalesReportSubView extends GetView<AdminDashboardController> {
 class TotalSalesReportSubView extends GetView<AdminDashboardController> {
   const TotalSalesReportSubView({super.key});
 
+  void _confirmBulkDelete(BuildContext context) {
+    Get.defaultDialog(
+      title: 'Confirm Bulk Delete',
+      middleText: 'Are you sure you want to delete ${controller.selectedWinnerIds.length} selected records?',
+      textConfirm: 'Delete All',
+      textCancel: 'Cancel',
+      confirmTextColor: Colors.white,
+      buttonColor: Colors.redAccent,
+      onConfirm: () {
+        Get.back();
+        controller.deleteWinnersBulk(List<int>.from(controller.selectedWinnerIds));
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      controller.selectedWinnerIds.clear();
+    });
+
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
@@ -1069,6 +1228,35 @@ class TotalSalesReportSubView extends GetView<AdminDashboardController> {
         backgroundColor: const Color(0xFF070C16).withOpacity(0.9),
         elevation: 0,
         actions: [
+          Obx(() {
+            if (controller.selectedWinnerIds.isEmpty) {
+              return const SizedBox.shrink();
+            }
+            return IconButton(
+              icon: const Icon(Icons.delete, color: Colors.redAccent),
+              tooltip: 'Delete Selected',
+              onPressed: () => _confirmBulkDelete(context),
+            );
+          }),
+          IconButton(
+            icon: const Icon(Icons.select_all, color: Color(0xFF00E5FF)),
+            tooltip: 'Select All',
+            onPressed: () {
+              final allIds = controller.filteredWinners.map((w) => int.tryParse(w['id'].toString()) ?? 0).where((id) => id > 0).toList();
+              final allSelected = allIds.isNotEmpty && allIds.every((id) => controller.selectedWinnerIds.contains(id));
+              if (allSelected) {
+                for (var id in allIds) {
+                  controller.selectedWinnerIds.remove(id);
+                }
+              } else {
+                for (var id in allIds) {
+                  if (!controller.selectedWinnerIds.contains(id)) {
+                    controller.selectedWinnerIds.add(id);
+                  }
+                }
+              }
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.download, color: Color(0xFF00E676)),
             tooltip: 'Export CSV',
@@ -1220,117 +1408,139 @@ class TotalSalesReportSubView extends GetView<AdminDashboardController> {
         ? '${ApiConfig.baseUrl}/${w['photo_path'].toString().replaceAll('api/', '')}'
         : '';
 
+    final int recordId = int.tryParse(w['id'].toString()) ?? 0;
     return Padding(
       padding: const EdgeInsets.only(bottom: 12.0),
-      child: GlassmorphismCard(
-        padding: const EdgeInsets.all(12),
-        child: Row(
-          children: [
-            if (imageUrl.isNotEmpty)
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Image.network(
-                  imageUrl,
-                  width: 65,
-                  height: 65,
-                  fit: BoxFit.cover,
-                  errorBuilder: (c, e, s) => Container(width: 65, height: 65, color: Colors.white10, child: const Icon(Icons.broken_image, size: 20, color: Colors.white24)),
-                ),
-              )
-            else
-              Container(width: 65, height: 65, decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(8)), child: const Icon(Icons.analytics, color: Colors.white24)),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
+        children: [
+          Obx(() {
+            final isChecked = controller.selectedWinnerIds.contains(recordId);
+            return Checkbox(
+              value: isChecked,
+              activeColor: const Color(0xFF00E5FF),
+              checkColor: Colors.black,
+              onChanged: (val) {
+                if (val == true) {
+                  controller.selectedWinnerIds.add(recordId);
+                } else {
+                  controller.selectedWinnerIds.remove(recordId);
+                }
+              },
+            );
+          }),
+          Expanded(
+            child: GlassmorphismCard(
+              padding: const EdgeInsets.all(12),
+              child: Row(
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Text('${w['customer_name']} (${w['mobile_number']})', style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
+                  if (imageUrl.isNotEmpty)
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.network(
+                        imageUrl,
+                        width: 65,
+                        height: 65,
+                        fit: BoxFit.cover,
+                        errorBuilder: (c, e, s) => Container(width: 65, height: 65, color: Colors.white10, child: const Icon(Icons.broken_image, size: 20, color: Colors.white24)),
                       ),
-                      Text('₹${w['net_amount']}', style: const TextStyle(color: Color(0xFF00E5FF), fontSize: 14, fontWeight: FontWeight.bold)),
-                    ],
-                  ),
-                  const SizedBox(height: 2),
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: (w['spin_eligible'] == 1) ? const Color(0xFF00E5FF).withOpacity(0.15) : const Color(0xFF00E676).withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(4),
-                          border: Border.all(
-                            color: (w['spin_eligible'] == 1) ? const Color(0xFF00E5FF) : const Color(0xFF00E676),
-                            width: 0.5,
-                          ),
-                        ),
-                        child: Text(
-                          (w['spin_eligible'] == 1) ? 'SPIN SALE' : 'DIRECT',
-                          style: TextStyle(
-                            color: (w['spin_eligible'] == 1) ? const Color(0xFF00E5FF) : const Color(0xFF00E676),
-                            fontSize: 8,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                          (w['spin_eligible'] == 1) ? 'Prize: ${w['prize_won']}' : 'Direct Checkout',
-                          style: TextStyle(
-                            color: (w['spin_eligible'] == 1) ? const Color(0xFF00E676) : Colors.greenAccent,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
-                  Text('${w['salesman_name']} • ${w['product_name']} (Qty: ${w['quantity']})', style: const TextStyle(color: Colors.white54, fontSize: 11)),
-                  if (timeStr.isNotEmpty) Text(timeStr, style: const TextStyle(color: Colors.white30, fontSize: 10)),
-                  if (w['latitude'] != null && w['longitude'] != null && w['latitude'].toString().isNotEmpty && w['longitude'].toString().isNotEmpty && w['latitude'].toString() != 'null' && w['longitude'].toString() != 'null')
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4.0),
-                      child: GestureDetector(
-                        onTap: () async {
-                          final lat = w['latitude'];
-                          final lng = w['longitude'];
-                          final googleMapsUrl = Uri.parse('https://www.google.com/maps/search/?api=1&query=$lat,$lng');
-                          try {
-                            if (await canLaunchUrl(googleMapsUrl)) {
-                              await launchUrl(googleMapsUrl, mode: LaunchMode.externalApplication);
-                            }
-                          } catch (_) {}
-                        },
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
+                    )
+                  else
+                    Container(width: 65, height: 65, decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(8)), child: const Icon(Icons.analytics, color: Colors.white24)),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Icon(Icons.location_on, color: Color(0xFF00E5FF), size: 12),
-                            const SizedBox(width: 4),
-                            Text(
-                              'Location: ${w['latitude']}, ${w['longitude']}',
-                              style: const TextStyle(color: Color(0xFF00E5FF), fontSize: 10, decoration: TextDecoration.underline),
+                            Expanded(
+                              child: Text('${w['customer_name']} (${w['mobile_number']})', style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
+                            ),
+                            Text('₹${w['net_amount']}', style: const TextStyle(color: Color(0xFF00E5FF), fontSize: 14, fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                        const SizedBox(height: 2),
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: (w['spin_eligible'] == 1) ? const Color(0xFF00E5FF).withOpacity(0.15) : const Color(0xFF00E676).withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(4),
+                                border: Border.all(
+                                  color: (w['spin_eligible'] == 1) ? const Color(0xFF00E5FF) : const Color(0xFF00E676),
+                                  width: 0.5,
+                                ),
+                              ),
+                              child: Text(
+                                (w['spin_eligible'] == 1) ? 'SPIN SALE' : 'DIRECT',
+                                style: TextStyle(
+                                  color: (w['spin_eligible'] == 1) ? const Color(0xFF00E5FF) : const Color(0xFF00E676),
+                                  fontSize: 8,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                (w['spin_eligible'] == 1) ? 'Prize: ${w['prize_won']}' : 'Direct Checkout',
+                                style: TextStyle(
+                                  color: (w['spin_eligible'] == 1) ? const Color(0xFF00E676) : Colors.greenAccent,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
                           ],
                         ),
-                      ),
+                        Text('${w['salesman_name']} • ${w['product_name']} (Qty: ${w['quantity']})', style: const TextStyle(color: Colors.white54, fontSize: 11)),
+                        if (timeStr.isNotEmpty) Text(timeStr, style: const TextStyle(color: Colors.white30, fontSize: 10)),
+                        if (w['latitude'] != null && w['longitude'] != null && w['latitude'].toString().isNotEmpty && w['longitude'].toString().isNotEmpty && w['latitude'].toString() != 'null' && w['longitude'].toString() != 'null')
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4.0),
+                            child: GestureDetector(
+                              onTap: () async {
+                                final lat = w['latitude'];
+                                final lng = w['longitude'];
+                                final googleMapsUrl = Uri.parse('https://www.google.com/maps/search/?api=1&query=$lat,$lng');
+                                try {
+                                  if (await canLaunchUrl(googleMapsUrl)) {
+                                    await launchUrl(googleMapsUrl, mode: LaunchMode.externalApplication);
+                                  }
+                                } catch (_) {}
+                              },
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.location_on, color: Color(0xFF00E5FF), size: 12),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'Location: ${w['latitude']}, ${w['longitude']}',
+                                    style: const TextStyle(color: Color(0xFF00E5FF), fontSize: 10, decoration: TextDecoration.underline),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                    onPressed: () => _confirmDelete(() {
+                      final id = int.tryParse(w['id'].toString()) ?? 0;
+                      controller.deleteWinner(id);
+                    }),
+                  ),
                 ],
               ),
             ),
-            IconButton(
-              icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
-              onPressed: () => _confirmDelete(() {
-                final id = int.tryParse(w['id'].toString()) ?? 0;
-                controller.deleteWinner(id);
-              }),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -1456,12 +1666,21 @@ class ProductsManagementSubView extends GetView<AdminDashboardController> {
                                 Text('₹${prod['price'] ?? '0.00'}', style: const TextStyle(color: Color(0xFF00E5FF), fontSize: 14)),
                               ],
                             ),
-                            IconButton(
-                              icon: const Icon(Icons.delete, color: Colors.redAccent),
-                              onPressed: () => _confirmDelete(() {
-                                final id = int.tryParse(prod['id'].toString()) ?? 0;
-                                controller.deleteProduct(id);
-                              }),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.edit, color: Color(0xFF00E5FF)),
+                                  onPressed: () => _showEditProductDialog(context, prod),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.delete, color: Colors.redAccent),
+                                  onPressed: () => _confirmDelete(() {
+                                    final id = int.tryParse(prod['id'].toString()) ?? 0;
+                                    controller.deleteProduct(id);
+                                  }),
+                                ),
+                              ],
                             ),
                           ],
                         ),
@@ -1488,6 +1707,56 @@ class ProductsManagementSubView extends GetView<AdminDashboardController> {
       onConfirm: () {
         Get.back();
         onConfirm();
+      },
+    );
+  }
+
+  void _showEditProductDialog(BuildContext context, Map<String, dynamic> prod) {
+    final editNameController = TextEditingController(text: prod['name'] ?? '');
+    final editPriceController = TextEditingController(text: (prod['price'] ?? '').toString());
+
+    Get.defaultDialog(
+      title: 'Edit Product',
+      titleStyle: const TextStyle(color: Color(0xFF00E5FF), fontWeight: FontWeight.bold),
+      backgroundColor: const Color(0xFF0D1B2A),
+      contentPadding: const EdgeInsets.all(16),
+      content: Column(
+        children: [
+          TextField(
+            controller: editNameController,
+            style: const TextStyle(color: Colors.white),
+            decoration: const InputDecoration(
+              labelText: 'Product Name',
+              labelStyle: TextStyle(color: Colors.white70),
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: editPriceController,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            style: const TextStyle(color: Colors.white),
+            decoration: const InputDecoration(
+              labelText: 'Price (₹)',
+              labelStyle: TextStyle(color: Colors.white70),
+            ),
+          ),
+        ],
+      ),
+      textConfirm: 'Save',
+      textCancel: 'Cancel',
+      confirmTextColor: Colors.black,
+      cancelTextColor: Colors.white70,
+      buttonColor: const Color(0xFF00E5FF),
+      onConfirm: () {
+        final name = editNameController.text.trim();
+        final price = double.tryParse(editPriceController.text.trim()) ?? -1.0;
+        if (name.isEmpty || price < 0) {
+          Get.snackbar('Input Error', 'Please enter valid name and price.', snackPosition: SnackPosition.BOTTOM);
+          return;
+        }
+        final id = int.tryParse(prod['id'].toString()) ?? 0;
+        Get.back();
+        controller.editProduct(id, name, price);
       },
     );
   }

@@ -77,9 +77,28 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
     }
     if ($_POST['action'] == 'delete_winner') {
         $id = (int)($_POST['winner_id'] ?? 0);
-        if ($id > 0) {
+        $winner_ids = trim($_POST['winner_ids'] ?? '');
+        if (!empty($winner_ids)) {
+            $ids_arr = explode(',', $winner_ids);
+            $clean_ids = array_map('intval', $ids_arr);
+            $ids_str = implode(',', $clean_ids);
+            $conn->query("DELETE FROM winners WHERE id IN ($ids_str)");
+        } elseif ($id > 0) {
             $stmt = $conn->prepare("DELETE FROM winners WHERE id = ?");
             $stmt->bind_param("i", $id);
+            $stmt->execute();
+            $stmt->close();
+        }
+        header("Location: dashboard.php");
+        exit;
+    }
+    if ($_POST['action'] == 'edit_product') {
+        $id = (int)($_POST['product_id'] ?? 0);
+        $name = trim($_POST['product_name'] ?? '');
+        $price = floatval($_POST['product_price'] ?? 0.0);
+        if ($id > 0 && !empty($name)) {
+            $stmt = $conn->prepare("UPDATE products SET name = ?, price = ? WHERE id = ?");
+            $stmt->bind_param("sdi", $name, $price, $id);
             $stmt->execute();
             $stmt->close();
         }
@@ -934,11 +953,14 @@ if ($pie_query) {
                                         <td><?= htmlspecialchars($p['name']) ?></td>
                                         <td><b>₹<?= htmlspecialchars(number_format($p['price'], 2)) ?></b></td>
                                         <td>
-                                            <form method="POST" style="margin:0;" onsubmit="return confirm('Delete <?= htmlspecialchars($p['name']) ?>?');">
-                                                <input type="hidden" name="action" value="delete_product">
-                                                <input type="hidden" name="product_id" value="<?= $p['id'] ?>">
-                                                <button type="submit" class="btn btn-red" style="padding: 4px 8px; font-size: 11px;">❌ Delete</button>
-                                            </form>
+                                            <div style="display: flex; gap: 5px;">
+                                                <button type="button" class="btn" style="padding: 4px 8px; font-size: 11px; background: var(--accent-color); color: black;" onclick="editProductPrompt(<?= $p['id'] ?>, '<?= htmlspecialchars(addslashes($p['name'])) ?>', <?= $p['price'] ?>)">✏️ Edit</button>
+                                                <form method="POST" style="margin:0;" onsubmit="return confirm('Delete <?= htmlspecialchars($p['name']) ?>?');">
+                                                    <input type="hidden" name="action" value="delete_product">
+                                                    <input type="hidden" name="product_id" value="<?= $p['id'] ?>">
+                                                    <button type="submit" class="btn btn-red" style="padding: 4px 8px; font-size: 11px;">❌ Delete</button>
+                                                </form>
+                                            </div>
                                         </td>
                                     </tr>
                                 <?php 
@@ -1045,6 +1067,9 @@ if ($pie_query) {
                     <a href="export_csv.php?export_type=direct&date_from=<?= urlencode($date_from) ?>&date_to=<?= urlencode($date_to) ?>&salesman=<?= urlencode($salesman_filter) ?>&product=<?= urlencode($product_filter) ?>">Export Direct Sales Only</a>
                 </div>
             </div>
+            <button type="button" id="bulkDeleteBtn" class="btn btn-red" style="display: none; gap: 5px;" onclick="bulkDeleteSelected()">
+                🗑️ Delete Selected
+            </button>
         </div>
     </form>
 
@@ -1052,6 +1077,7 @@ if ($pie_query) {
         <table>
             <thead>
                 <tr>
+                    <th><input type="checkbox" id="selectAllWinners" onclick="toggleSelectAllWinners(this)"></th>
                     <th>ID</th>
                     <th>Date</th>
                     <th>Salesman</th>
@@ -1071,6 +1097,7 @@ if ($pie_query) {
             <tbody>
                 <?php while($row = $result->fetch_assoc()): ?>
                 <tr>
+                    <td><input type="checkbox" class="winner-checkbox" value="<?= $row['id'] ?>" onclick="updateBulkDeleteButtonVisibility()"></td>
                     <td><?= $row['id'] ?></td>
                     <td><?= htmlspecialchars(date('d-m-Y H:i', strtotime($row['created_at']))) ?></td>
                     <td><?= htmlspecialchars($row['salesman_name']) ?></td>
@@ -1252,6 +1279,101 @@ if ($pie_query) {
         function toggleExportMenu(e) {
             e.stopPropagation();
             document.getElementById('exportMenu').classList.toggle('show');
+        }
+
+        function editProductPrompt(id, currentName, currentPrice) {
+            const newName = prompt("Enter new Product Name:", currentName);
+            if (newName === null || newName.trim() === "") return;
+            const newPriceStr = prompt("Enter new Product Price (₹):", currentPrice);
+            if (newPriceStr === null) return;
+            const newPrice = parseFloat(newPriceStr);
+            if (isNaN(newPrice) || newPrice < 0) {
+                alert("Invalid price!");
+                return;
+            }
+            
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = 'dashboard.php';
+            
+            const actionInput = document.createElement('input');
+            actionInput.type = 'hidden';
+            actionInput.name = 'action';
+            actionInput.value = 'edit_product';
+            form.appendChild(actionInput);
+            
+            const idInput = document.createElement('input');
+            idInput.type = 'hidden';
+            idInput.name = 'product_id';
+            idInput.value = id;
+            form.appendChild(idInput);
+            
+            const nameInput = document.createElement('input');
+            nameInput.type = 'hidden';
+            nameInput.name = 'product_name';
+            nameInput.value = newName.trim();
+            form.appendChild(nameInput);
+            
+            const priceInput = document.createElement('input');
+            priceInput.type = 'hidden';
+            priceInput.name = 'product_price';
+            priceInput.value = newPrice;
+            form.appendChild(priceInput);
+            
+            document.body.appendChild(form);
+            form.submit();
+        }
+
+        function toggleSelectAllWinners(masterCheckbox) {
+            const checkboxes = document.querySelectorAll('.winner-checkbox');
+            checkboxes.forEach(cb => {
+                cb.checked = masterCheckbox.checked;
+            });
+            updateBulkDeleteButtonVisibility();
+        }
+
+        function updateBulkDeleteButtonVisibility() {
+            const checkedCount = document.querySelectorAll('.winner-checkbox:checked').length;
+            const bulkBtn = document.getElementById('bulkDeleteBtn');
+            if (bulkBtn) {
+                if (checkedCount > 0) {
+                    bulkBtn.style.display = 'inline-flex';
+                    bulkBtn.innerText = '🗑️ Delete Selected (' + checkedCount + ')';
+                } else {
+                    bulkBtn.style.display = 'none';
+                }
+            }
+        }
+
+        function bulkDeleteSelected() {
+            const checked = document.querySelectorAll('.winner-checkbox:checked');
+            if (checked.length === 0) return;
+            
+            if (confirm("Are you sure you want to delete the " + checked.length + " selected sales records? This cannot be undone!")) {
+                const ids = [];
+                checked.forEach(cb => {
+                    ids.push(cb.value);
+                });
+                
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = 'dashboard.php';
+                
+                const actionInput = document.createElement('input');
+                actionInput.type = 'hidden';
+                actionInput.name = 'action';
+                actionInput.value = 'delete_winner';
+                form.appendChild(actionInput);
+                
+                const idsInput = document.createElement('input');
+                idsInput.type = 'hidden';
+                idsInput.name = 'winner_ids';
+                idsInput.value = ids.join(',');
+                form.appendChild(idsInput);
+                
+                document.body.appendChild(form);
+                form.submit();
+            }
         }
 
         // Close dropdown menu when clicking anywhere else

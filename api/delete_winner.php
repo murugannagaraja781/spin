@@ -6,8 +6,17 @@ require_once '../config.php';
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $input = json_decode(file_get_contents('php://input'), true);
     $id = intval($input['id'] ?? $_POST['id'] ?? 0);
+    $ids = $input['ids'] ?? [];
 
-    if ($id > 0) {
+    if (!empty($ids) && is_array($ids)) {
+        $clean_ids = array_map('intval', $ids);
+        $ids_str = implode(',', $clean_ids);
+        if ($conn->query("DELETE FROM winners WHERE id IN ($ids_str)")) {
+            echo json_encode(["status" => "success", "message" => "Selected entries deleted successfully!"]);
+        } else {
+            echo json_encode(["status" => "error", "message" => "Failed to delete entries: " . $conn->error]);
+        }
+    } elseif ($id > 0) {
         $stmt = $conn->prepare("DELETE FROM winners WHERE id = ?");
         $stmt->bind_param("i", $id);
         if ($stmt->execute()) {

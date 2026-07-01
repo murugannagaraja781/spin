@@ -42,6 +42,9 @@ class AdminDashboardController extends GetxController {
   final selectedSalesmanFilter = ''.obs;
   final selectedProductFilter = ''.obs;
 
+  // Selection state for bulk delete
+  final selectedWinnerIds = <int>[].obs;
+
   List<Map<String, dynamic>> get filteredWinners {
     return serverWinners.where((w) {
       final matchesSalesman = selectedSalesmanFilter.value.isEmpty ||
@@ -239,6 +242,48 @@ class AdminDashboardController extends GetxController {
         await fetchServerData();
       } else {
         Get.snackbar('Error', response.data['message'] ?? 'Failed to delete record', snackPosition: SnackPosition.BOTTOM);
+      }
+    } catch (e) {
+      Get.snackbar('Error', 'Connection error: $e', snackPosition: SnackPosition.BOTTOM);
+    } finally {
+      isServerLoading.value = false;
+    }
+  }
+
+  Future<void> editProduct(int id, String name, double price) async {
+    isServerLoading.value = true;
+    try {
+      final response = await dio.Dio().post(
+        '$_baseUrl/edit_product.php',
+        data: {'id': id, 'name': name, 'price': price},
+      );
+      if (response.statusCode == 200 && response.data['status'] == 'success') {
+        Get.snackbar('Success', 'Product updated successfully!', snackPosition: SnackPosition.BOTTOM);
+        await fetchServerData();
+      } else {
+        Get.snackbar('Error', response.data['message'] ?? 'Failed to update product', snackPosition: SnackPosition.BOTTOM);
+      }
+    } catch (e) {
+      Get.snackbar('Error', 'Connection error: $e', snackPosition: SnackPosition.BOTTOM);
+    } finally {
+      isServerLoading.value = false;
+    }
+  }
+
+  Future<void> deleteWinnersBulk(List<int> ids) async {
+    if (ids.isEmpty) return;
+    isServerLoading.value = true;
+    try {
+      final response = await dio.Dio().post(
+        '$_baseUrl/delete_winner.php',
+        data: {'ids': ids},
+      );
+      if (response.statusCode == 200 && response.data['status'] == 'success') {
+        Get.snackbar('Success', 'Selected records deleted successfully!', snackPosition: SnackPosition.BOTTOM);
+        selectedWinnerIds.clear(); // Clear selections
+        await fetchServerData();
+      } else {
+        Get.snackbar('Error', response.data['message'] ?? 'Failed to delete selected records', snackPosition: SnackPosition.BOTTOM);
       }
     } catch (e) {
       Get.snackbar('Error', 'Connection error: $e', snackPosition: SnackPosition.BOTTOM);
