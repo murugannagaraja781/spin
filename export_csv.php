@@ -24,9 +24,9 @@ if ($export_type === 'spin') {
 header('Content-Disposition: attachment; filename=' . $filename);
 
 $output = fopen('php://output', 'w');
-fputcsv($output, array('ID', 'Date', 'Salesman Name', 'Product Name', 'Customer Name', 'Mobile Number', 'Spin Eligible', 'Prize Won/Status'));
+fputcsv($output, array('ID', 'Date', 'Salesman Name', 'Product Name', 'Qty', 'Customer Name', 'Mobile Number', 'Spin Eligible', 'Prize Won/Status'));
 
-$query = "SELECT id, created_at, salesman_name, product_name, customer_name, mobile_number, spin_eligible, prize_won FROM winners WHERE 1=1";
+$query = "SELECT id, created_at, salesman_name, product_name, quantity, customer_name, mobile_number, spin_eligible, prize_won FROM winners WHERE 1=1 AND product_name NOT LIKE '%Multiple%'";
 
 if ($date_from) {
     $query .= " AND DATE(created_at) >= '" . $conn->real_escape_string($date_from) . "'";
@@ -34,11 +34,11 @@ if ($date_from) {
 if ($date_to) {
     $query .= " AND DATE(created_at) <= '" . $conn->real_escape_string($date_to) . "'";
 }
-if ($salesman_filter) {
-    $query .= " AND salesman_name = '" . $conn->real_escape_string($salesman_filter) . "'";
+if ($salesman_filter !== '') {
+    $query .= " AND TRIM(salesman_name) = '" . $conn->real_escape_string(trim($salesman_filter)) . "'";
 }
-if ($product_filter) {
-    $query .= " AND product_name = '" . $conn->real_escape_string($product_filter) . "'";
+if ($product_filter !== '') {
+    $query .= " AND TRIM(product_name) = '" . $conn->real_escape_string(trim($product_filter)) . "'";
 }
 if ($export_type === 'spin') {
     $query .= " AND spin_eligible = 1";
@@ -50,15 +50,25 @@ $query .= " ORDER BY created_at DESC";
 $result = $conn->query($query);
 
 while ($row = $result->fetch_assoc()) {
+    $prize_won = $row['prize_won'];
+    if ($prize_won) {
+        $clean_prize = preg_replace('/[^0-9.]/', '', $prize_won);
+        $clean_prize = rtrim($clean_prize, '.');
+        $prize_display = ($clean_prize !== '') ? $clean_prize : $prize_won;
+    } else {
+        $prize_display = ($row['spin_eligible'] == 1 ? '-' : 'Direct Checkout');
+    }
+
     fputcsv($output, array(
         $row['id'],
         $row['created_at'],
         $row['salesman_name'],
         $row['product_name'],
+        $row['quantity'] ?? 1,
         $row['customer_name'],
         $row['mobile_number'],
         ($row['spin_eligible'] == 1 ? 'Yes' : 'No'),
-        ($row['prize_won'] ? $row['prize_won'] : ($row['spin_eligible'] == 1 ? '-' : 'Direct Checkout'))
+        $prize_display
     ));
 }
 

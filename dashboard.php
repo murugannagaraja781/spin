@@ -166,11 +166,11 @@ if ($date_from) {
 if ($date_to) {
     $query .= " AND DATE(w.created_at) <= '" . $conn->real_escape_string($date_to) . "'";
 }
-if ($salesman_filter) {
-    $query .= " AND w.salesman_name = '" . $conn->real_escape_string($salesman_filter) . "'";
+if ($salesman_filter !== '') {
+    $query .= " AND TRIM(w.salesman_name) = '" . $conn->real_escape_string(trim($salesman_filter)) . "'";
 }
-if ($product_filter) {
-    $query .= " AND w.product_name = '" . $conn->real_escape_string($product_filter) . "'";
+if ($product_filter !== '') {
+    $query .= " AND TRIM(w.product_name) = '" . $conn->real_escape_string(trim($product_filter)) . "'";
 }
 if ($sales_type === 'spin') {
     $query .= " AND w.spin_eligible = 1";
@@ -182,8 +182,8 @@ $query .= " ORDER BY w.created_at DESC";
 $result = $conn->query($query);
 
 // Fetch Salesmen and Products for filter dropdowns
-$salesmen_query = $conn->query("SELECT DISTINCT salesman_name FROM winners WHERE salesman_name IS NOT NULL");
-$products_query = $conn->query("SELECT DISTINCT product_name FROM winners WHERE product_name IS NOT NULL");
+$salesmen_query = $conn->query("SELECT DISTINCT salesman_name FROM winners WHERE salesman_name IS NOT NULL AND TRIM(salesman_name) != '' ORDER BY salesman_name ASC");
+$products_query = $conn->query("SELECT DISTINCT product_name FROM winners WHERE product_name IS NOT NULL AND TRIM(product_name) != '' ORDER BY product_name ASC");
 
 // Generate Reports Data
 $salesman_reports = $conn->query("SELECT salesman_name, COUNT(*) as total_spins FROM winners GROUP BY salesman_name");
@@ -1033,7 +1033,7 @@ if ($pie_query) {
             <select name="salesman">
                 <option value="">All</option>
                 <?php while($s = $salesmen_query->fetch_assoc()): ?>
-                    <option value="<?= htmlspecialchars($s['salesman_name']) ?>" <?= $salesman_filter == $s['salesman_name'] ? 'selected' : '' ?>><?= htmlspecialchars($s['salesman_name']) ?></option>
+                    <option value="<?= htmlspecialchars($s['salesman_name']) ?>" <?= trim($salesman_filter) == trim($s['salesman_name']) ? 'selected' : '' ?>><?= htmlspecialchars($s['salesman_name']) ?></option>
                 <?php endwhile; ?>
             </select>
         </div>
@@ -1042,7 +1042,7 @@ if ($pie_query) {
             <select name="product">
                 <option value="">All</option>
                 <?php while($p = $products_query->fetch_assoc()): ?>
-                    <option value="<?= htmlspecialchars($p['product_name']) ?>" <?= $product_filter == $p['product_name'] ? 'selected' : '' ?>><?= htmlspecialchars($p['product_name']) ?></option>
+                    <option value="<?= htmlspecialchars($p['product_name']) ?>" <?= trim($product_filter) == trim($p['product_name']) ? 'selected' : '' ?>><?= htmlspecialchars($p['product_name']) ?></option>
                 <?php endwhile; ?>
             </select>
         </div>

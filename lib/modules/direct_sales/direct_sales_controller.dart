@@ -215,6 +215,8 @@ class DirectSalesController extends GetxController {
         });
       }
 
+      final String productNames = cartItems.map((item) => item['product']['name'].toString()).join(', ');
+
       // Prepare cart list for invoice display before clearing cart
       final List<Map<String, dynamic>> invoiceItems = cartItems.map((item) {
         return {
@@ -229,7 +231,7 @@ class DirectSalesController extends GetxController {
       
       Get.offNamed('/submit-success', arguments: {
         'salesman': salesman.value,
-        'product': 'Multiple Products ($totalCheckoutItems)',
+        'product': productNames,
         'customerName': 'Counter Customer',
         'mobileNumber': '0000000000',
         'prize': 'Direct Sale Complete',
