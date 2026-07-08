@@ -51,6 +51,13 @@ class SubmitSuccessController extends GetxController {
 
   Future<void> _submitDataOffline() async {
     try {
+      final bool alreadySubmitted = data['already_submitted'] == true;
+      if (alreadySubmitted) {
+        isSuccess.value = true;
+        isSubmitting.value = false;
+        return;
+      }
+
       final mobileNumber = data['mobileNumber']?.toString() ?? '';
       final product = data['product']?.toString() ?? '';
       final bool isSpinEligible = (data['spin_eligible'] == true);

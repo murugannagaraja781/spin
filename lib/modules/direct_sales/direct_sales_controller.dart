@@ -241,6 +241,7 @@ class DirectSalesController extends GetxController {
         'net_amount': totalCheckoutAmount,
         'spin_eligible': false,
         'items': invoiceItems,
+        'already_submitted': true,
       });
 
     } catch (e) {

@@ -24,9 +24,9 @@ if ($export_type === 'spin') {
 header('Content-Disposition: attachment; filename=' . $filename);
 
 $output = fopen('php://output', 'w');
-fputcsv($output, array('ID', 'Date', 'Salesman Name', 'Product Name', 'Qty', 'Customer Name', 'Mobile Number', 'Spin Eligible', 'Prize Won/Status'));
+fputcsv($output, array('ID', 'Date', 'Salesman Name', 'Product Name', 'Qty', 'Order Total', 'Customer Name', 'Mobile Number', 'Spin Eligible', 'Discount Won', 'Net Amount', 'Prize Won/Status'));
 
-$query = "SELECT id, created_at, salesman_name, product_name, quantity, customer_name, mobile_number, spin_eligible, prize_won FROM winners WHERE 1=1 AND product_name NOT LIKE '%Multiple%'";
+$query = "SELECT id, created_at, salesman_name, product_name, quantity, order_total, discount_applied, net_amount, customer_name, mobile_number, spin_eligible, prize_won FROM winners WHERE 1=1 AND product_name NOT LIKE '%Multiple%'";
 
 if ($date_from) {
     $query .= " AND DATE(created_at) >= '" . $conn->real_escape_string($date_from) . "'";
@@ -65,9 +65,12 @@ while ($row = $result->fetch_assoc()) {
         $row['salesman_name'],
         $row['product_name'],
         $row['quantity'] ?? 1,
+        $row['order_total'] ?? 0.00,
         $row['customer_name'],
         $row['mobile_number'],
         ($row['spin_eligible'] == 1 ? 'Yes' : 'No'),
+        $row['discount_applied'] ?? 0.00,
+        $row['net_amount'] ?? 0.00,
         $prize_display
     ));
 }

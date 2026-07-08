@@ -101720,7 +101720,7 @@ a6=a6.h("a2<aI.E,aF<n,@>>")
 c2=A.Y(new A.a2(c3,new A.aa8(),a6),a6.h("ai.E"))
 a3=c2
 c3.sB(0,0)
-A.wx($.T(),"/submit-success",A.a1(["salesman",b1.gl(),"product",a2,"customerName","Counter Customer","mobileNumber","0000000000","prize","Direct Sale Complete","photoPath","","quantity",h,"orderTotal",i,"net_amount",i,"spin_eligible",!1,"items",a3],a7,t.K),a8)
+A.wx($.T(),"/submit-success",A.a1(["salesman",b1.gl(),"product",a2,"customerName","Counter Customer","mobileNumber","0000000000","prize","Direct Sale Complete","photoPath","","quantity",h,"orderTotal",i,"net_amount",i,"spin_eligible",!1,"items",a3,"already_submitted",!0],a7,t.K),a8)
 n.push(6)
 s=5
 break
@@ -102984,92 +102984,53 @@ break
 case 6:case 1:return A.p(q,r)
 case 2:return A.o(o.at(-1),r)}})
 return A.q($async$pg,r)},
-mb(){var s=0,r=A.r(t.H),q,p=2,o=[],n=[],m=this,l,k,j,i,h,g,f,e,d,c,b,a,a0,a1,a2,a3,a4,a5,a6,a7,a8,a9,b0,b1,b2,b3,b4,b5,b6,b7,b8,b9,c0,c1,c2
-var $async$mb=A.t(function(c3,c4){if(c3===1){o.push(c4)
+mb(){var s=0,r=A.r(t.H),q,p=2,o=[],n=[],m=this,l,k,j,i,h,g,f,e,d,c,b,a,a0,a1,a2,a3,a4,a5,a6,a7,a8,a9,b0,b1,b2,b3,b4,b5,b6,b7,b8,b9,c0,c1,c2,c3
+var $async$mb=A.t(function(c4,c5){if(c4===1){o.push(c5)
 s=p}for(;;)switch(s){case 0:p=4
-a2=m.ch
-a2===$&&A.a()
-a2=a2.i(0,"mobileNumber")
-a3=a2==null?null:J.ag(a2)
-l=a3==null?"":a3
-a2=m.ch.i(0,"product")
-a4=a2==null?null:J.ag(a2)
+a3=m.ch
+a3===$&&A.a()
+l=J.c(a3.i(0,"already_submitted"),!0)
+if(l){m.ay.sl(!0)
+m.ax.sl(!1)
+n=[1]
+s=5
+break}a3=m.ch.i(0,"mobileNumber")
+a4=a3==null?null:J.ag(a3)
 k=a4==null?"":a4
-j=J.c(m.ch.i(0,"spin_eligible"),!0)
-s=j?7:8
+a3=m.ch.i(0,"product")
+a5=a3==null?null:J.ag(a3)
+j=a5==null?"":a5
+i=J.c(m.ch.i(0,"spin_eligible"),!0)
+s=i?7:8
 break
 case 7:s=9
-return A.l(A.R6(l,k),$async$mb)
-case 9:i=c4
-if(i){A.b5($.T(),"Already Spun Today","This mobile number has already completed a spin for this product today!",null,null,B.em,B.v)
+return A.l(A.R6(k,j),$async$mb)
+case 9:h=c5
+if(h){A.b5($.T(),"Already Spun Today","This mobile number has already completed a spin for this product today!",null,null,B.em,B.v)
 m.ay.sl(!1)
 m.ax.sl(!1)
 n=[1]
 s=5
-break}case 8:h=""
-g=""
+break}case 8:g=""
+f=""
 s=10
 return A.l(m.pg(),$async$mb)
-case 10:f=c4
-if(f!=null){h=B.d.k(f.a)
-g=B.d.k(f.b)}e=!1
+case 10:e=c5
+if(e!=null){g=B.d.k(e.a)
+f=B.d.k(e.b)}d=!1
 p=12
-a2=m.ch.i(0,"salesman")
-if(a2==null)a2=""
-a5=m.ch.i(0,"product")
-if(a5==null)a5=""
-a6=m.ch.i(0,"customerName")
+a3=m.ch.i(0,"salesman")
+if(a3==null)a3=""
+a6=m.ch.i(0,"product")
 if(a6==null)a6=""
-a7=m.ch.i(0,"mobileNumber")
+a7=m.ch.i(0,"customerName")
 if(a7==null)a7=""
-a8=m.ch.i(0,"prize")
+a8=m.ch.i(0,"mobileNumber")
 if(a8==null)a8=""
-a9=h
+a9=m.ch.i(0,"prize")
+if(a9==null)a9=""
 b0=g
-b1=m.ch.i(0,"quantity")
-if(b1==null)b1=1
-b2=m.ch.i(0,"orderTotal")
-if(b2==null)b2=0
-b3=m.ch.i(0,"discount_applied")
-if(b3==null)b3=0
-b4=m.ch.i(0,"net_amount")
-if(b4==null)b4=0
-b5=J.c(m.ch.i(0,"spin_eligible"),!0)?1:0
-b6=t.z
-d=A.a1(["salesman",a2,"product",a5,"customer_name",a6,"mobile_number",a7,"prize",a8,"latitude",a9,"longitude",b0,"quantity",b1,"order_total",b2,"discount_applied",b3,"net_amount",b4,"spin_eligible",b5],t.N,b6)
-c=A.PG(d)
-b5=m.ch.i(0,"photoPath")
-b7=b5==null?null:J.ag(b5)
-b=b7==null?"":b7
-s=J.b3(b)!==0?15:16
-break
-case 15:a2=c.e
-s=17
-return A.l(A.aLm(b,"photo.jpg"),$async$mb)
-case 17:a2.push(void 1)
-case 16:s=18
-return A.l(A.dJ(null).qm(u.Z,c,A.lu(null,B.q2,B.q2),b6),$async$mb)
-case 18:a=c4
-if(a.c===200&&a.a!=null)if(J.c(J.ad(a.a,"status"),"success"))e=!0
-p=4
-s=14
-break
-case 12:p=11
-c1=o.pop()
-a0=A.S(c1)
-A.fU("Direct online sync failed: "+A.h(a0))
-s=14
-break
-case 11:s=4
-break
-case 14:a2=m.ch.i(0,"salesman")
-a5=m.ch.i(0,"product")
-a6=m.ch.i(0,"customerName")
-a7=m.ch.i(0,"mobileNumber")
-a8=m.ch.i(0,"prize")
-a9=m.ch.i(0,"photoPath")
-b0=h
-b1=g
+b1=f
 b2=m.ch.i(0,"quantity")
 if(b2==null)b2=1
 b3=m.ch.i(0,"orderTotal")
@@ -103079,22 +103040,66 @@ if(b4==null)b4=0
 b5=m.ch.i(0,"net_amount")
 if(b5==null)b5=0
 b6=J.c(m.ch.i(0,"spin_eligible"),!0)?1:0
-b9=e?1:0
-c0=t.z
+b7=t.z
+c=A.a1(["salesman",a3,"product",a6,"customer_name",a7,"mobile_number",a8,"prize",a9,"latitude",b0,"longitude",b1,"quantity",b2,"order_total",b3,"discount_applied",b4,"net_amount",b5,"spin_eligible",b6],t.N,b7)
+b=A.PG(c)
+b6=m.ch.i(0,"photoPath")
+b8=b6==null?null:J.ag(b6)
+a=b8==null?"":b8
+s=J.b3(a)!==0?15:16
+break
+case 15:a3=b.e
+s=17
+return A.l(A.aLm(a,"photo.jpg"),$async$mb)
+case 17:a3.push(void 1)
+case 16:s=18
+return A.l(A.dJ(null).qm(u.Z,b,A.lu(null,B.q2,B.q2),b7),$async$mb)
+case 18:a0=c5
+if(a0.c===200&&a0.a!=null)if(J.c(J.ad(a0.a,"status"),"success"))d=!0
+p=4
+s=14
+break
+case 12:p=11
+c2=o.pop()
+a1=A.S(c2)
+A.fU("Direct online sync failed: "+A.h(a1))
+s=14
+break
+case 11:s=4
+break
+case 14:a3=m.ch.i(0,"salesman")
+a6=m.ch.i(0,"product")
+a7=m.ch.i(0,"customerName")
+a8=m.ch.i(0,"mobileNumber")
+a9=m.ch.i(0,"prize")
+b0=m.ch.i(0,"photoPath")
+b1=g
+b2=f
+b3=m.ch.i(0,"quantity")
+if(b3==null)b3=1
+b4=m.ch.i(0,"orderTotal")
+if(b4==null)b4=0
+b5=m.ch.i(0,"discount_applied")
+if(b5==null)b5=0
+b6=m.ch.i(0,"net_amount")
+if(b6==null)b6=0
+b7=J.c(m.ch.i(0,"spin_eligible"),!0)?1:0
+c0=d?1:0
+c1=t.z
 s=19
-return A.l(A.wS(A.a1(["salesman",a2,"product",a5,"customerName",a6,"mobileNumber",a7,"prize",a8,"photoPath",a9,"latitude",b0,"longitude",b1,"quantity",b2,"order_total",b3,"discount_applied",b4,"net_amount",b5,"spin_eligible",b6,"synced",b9],t.N,c0)),$async$mb)
+return A.l(A.wS(A.a1(["salesman",a3,"product",a6,"customerName",a7,"mobileNumber",a8,"prize",a9,"photoPath",b0,"latitude",b1,"longitude",b2,"quantity",b3,"order_total",b4,"discount_applied",b5,"net_amount",b6,"spin_eligible",b7,"synced",c0],t.N,c1)),$async$mb)
 case 19:s=20
-return A.l(A.mG(B.el,null,c0),$async$mb)
+return A.l(A.mG(B.el,null,c1),$async$mb)
 case 20:m.ay.sl(!0)
 n.push(6)
 s=5
 break
 case 4:p=3
-c2=o.pop()
-a1=A.S(c2)
+c3=o.pop()
+a2=A.S(c3)
 A.b5($.T(),"Error","Failed to save data locally.",null,null,B.u,B.v)
 m.ay.sl(!1)
-A.fU("Local DB Error: "+A.h(a1))
+A.fU("Local DB Error: "+A.h(a2))
 n.push(6)
 s=5
 break
